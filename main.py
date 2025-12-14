@@ -3,9 +3,29 @@ import pymunk
 import pymunk.pygame_util
 import random
 
-# --- 設定 ---
-WIDTH, HEIGHT = 600, 800  # 画面サイズ
-FPS = 60                  # フレームレート
+# --- Constants ---
+# Screen dimensions
+WIDTH, HEIGHT = 600, 800
+FPS = 60
+
+# Colors
+BACKGROUND_COLOR = (255, 255, 255)
+
+# Physics properties
+GRAVITY = (0.0, 900.0)
+
+# Wall properties
+WALL_INSET = 50
+WALL_THICKNESS = 5
+WALL_ELASTICITY = 0.5
+WALL_FRICTION = 0.5
+
+# Properties
+MASS = 1
+ELASTICITY = 0.8
+FRICTION = 0.5
+SPAWN_Y = 50
+
 GAME_OVER_LINE_Y = 100    # ゲームオーバー判定ラインのY座標
 GAME_OVER_DELAY = 2       # ゲームオーバーになるまでの猶予時間（秒）
 
@@ -23,42 +43,41 @@ ANIMAL_SPECS = [
     {'name': 'ぞう',   'radius': 80, 'color': (192, 192, 192), 'evolves_to': None}, # 象は進化しない
 ]
 
-# --- 初期化 ---
+# --- Initialization ---
 pygame.init()
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
 pygame.display.set_caption("Python Suika Game Base")
 clock = pygame.time.Clock()
 
-# --- 物理空間の作成 ---
+# --- Physics Space Setup ---
 space = pymunk.Space()
-space.gravity = (0.0, 900.0)  # 重力 (x, y) 下方向に900
+space.gravity = GRAVITY
 
-# デバッグ描画用（物理演算の結果をそのまま線で表示してくれる便利なツール）
+# Debug drawing tool
 draw_options = pymunk.pygame_util.DrawOptions(screen)
 
-# --- 壁を作る関数 ---
+# --- Wall Creation ---
 def create_walls(space, width, height):
-    # 静的物体（Static）として壁を作る
+    """Creates static walls for the game area."""
     walls = [
-        pymunk.Segment(space.static_body, (50, height - 50), (width - 50, height - 50), 5), # 床
-        pymunk.Segment(space.static_body, (50, height - 50), (50, 50), 5),                 # 左壁
-        pymunk.Segment(space.static_body, (width - 50, height - 50), (width - 50, 50), 5)  # 右壁
+        pymunk.Segment(space.static_body, (WALL_INSET, height - WALL_INSET), (width - WALL_INSET, height - WALL_INSET), WALL_THICKNESS), # Floor
+        pymunk.Segment(space.static_body, (WALL_INSET, height - WALL_INSET), (WALL_INSET, WALL_INSET), WALL_THICKNESS),                 # Left wall
+        pymunk.Segment(space.static_body, (width - WALL_INSET, height - WALL_INSET), (width - WALL_INSET, WALL_INSET), WALL_THICKNESS)  # Right wall
     ]
     for wall in walls:
-        wall.elasticity = 0.5  # 跳ね返り係数 (0.0〜1.0)
-        wall.friction = 0.5    # 摩擦
+        wall.elasticity = WALL_ELASTICITY
+        wall.friction = WALL_FRICTION
     space.add(*walls)
 
 # --- 動物を作る関数 ---
 def create_animal(space, x, y, animal_spec):
-    mass = 1
     radius = animal_spec['radius']
-    moment = pymunk.moment_for_circle(mass, 0, radius)
-    body = pymunk.Body(mass, moment)
+    moment = pymunk.moment_for_circle(MASS, 0, radius)
+    body = pymunk.Body(MASS, moment)
     body.position = x, y
     shape = pymunk.Circle(body, radius)
-    shape.elasticity = 0.8
-    shape.friction = 0.5
+    shape.elasticity = ELASTICITY
+    shape.friction = FRICTION
     # カスタムプロパティとして動物の名前を追加
     shape.animal_name = animal_spec['name']
     shape.collision_type = 1 # 動物用の衝突タイプ
@@ -116,7 +135,7 @@ ANIMAL_MAP = {spec['name']: spec for spec in ANIMAL_SPECS}
 def get_animal_spec(animal_name):
     return ANIMAL_MAP.get(animal_name)
 
-# --- メインループ ---
+# --- Main Game Loop ---
 running = True
 game_over = False
 game_over_timer = 0
@@ -126,7 +145,7 @@ is_animal_over_line = False
 current_animal_spec = random.choice(ANIMAL_SPECS[:3])
 
 while running:
-    # 1. イベント処理
+    # 1. Event Handling
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
@@ -142,7 +161,7 @@ while running:
             # 次に落とす動物をランダムに選ぶ
             current_animal_spec = random.choice(ANIMAL_SPECS[:3])
 
-    # 2. 物理演算の更新
+    # 2. Physics Update
     space.step(1 / FPS)
 
     # 衝突後のオブジェクト削除と追加
@@ -178,8 +197,8 @@ while running:
 
 
     # 3. 描画
-    screen.fill((210, 230, 255)) # 背景色
-
+    screen.fill((BACKGROUND_COLOR)) # 背景色
+    space.debug_draw(draw_options) # Use Pymunk's debug drawing
     # ゲームオーバーラインの描画 (点線)
     for x in range(50, WIDTH - 50, 20):
         pygame.draw.line(screen, (255, 0, 0), (x, GAME_OVER_LINE_Y), (x + 10, GAME_OVER_LINE_Y), 2)
