@@ -104,8 +104,7 @@ def post_solve_collision(arbiter, space, data):
 
 
 # Pymunkに衝突ハンドラを登録
-handler = space.add_collision_handler(1, 1) # 衝突タイプ1同士の衝突
-handler.post_solve = post_solve_collision
+handler = space.on_collision(1, 1,post_solve=post_solve_collision) # 衝突タイプ1同士の衝突
 
 # 壁を生成
 create_walls(space, WIDTH, HEIGHT)
@@ -162,7 +161,11 @@ while running:
         is_animal_over_line = False
         for body in space.bodies:
             # 動物の上端がラインを超えているかチェック
-            if body.position.y - body.shapes[0].radius < GAME_OVER_LINE_Y:
+            shapes_list = list(body.shapes)
+
+            if shapes_list:
+                first_shape = shapes_list[0]
+            if body.position.y - first_shape.radius < GAME_OVER_LINE_Y:
                 is_animal_over_line = True
                 break
 
