@@ -2,71 +2,90 @@ import pygame
 import pymunk
 import pymunk.pygame_util
 
-# --- 設定 ---
-WIDTH, HEIGHT = 600, 800  # 画面サイズ
-FPS = 60                  # フレームレート
+# --- Constants ---
+# Screen dimensions
+WIDTH, HEIGHT = 600, 800
+FPS = 60
 
-# --- 初期化 ---
+# Colors
+BACKGROUND_COLOR = (255, 255, 255)
+
+# Physics properties
+GRAVITY = (0.0, 900.0)
+
+# Wall properties
+WALL_INSET = 50
+WALL_THICKNESS = 5
+WALL_ELASTICITY = 0.5
+WALL_FRICTION = 0.5
+
+# Ball properties
+BALL_MASS = 1
+BALL_RADIUS = 30
+BALL_ELASTICITY = 0.8
+BALL_FRICTION = 0.5
+BALL_SPAWN_Y = 50
+
+
+# --- Initialization ---
 pygame.init()
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
 pygame.display.set_caption("Python Suika Game Base")
 clock = pygame.time.Clock()
 
-# --- 物理空間の作成 ---
+# --- Physics Space Setup ---
 space = pymunk.Space()
-space.gravity = (0.0, 900.0)  # 重力 (x, y) 下方向に900
+space.gravity = GRAVITY
 
-# デバッグ描画用（物理演算の結果をそのまま線で表示してくれる便利なツール）
+# Debug drawing tool
 draw_options = pymunk.pygame_util.DrawOptions(screen)
 
-# --- 壁を作る関数 ---
+# --- Wall Creation ---
 def create_walls(space, width, height):
-    # 静的物体（Static）として壁を作る
+    """Creates static walls for the game area."""
     walls = [
-        pymunk.Segment(space.static_body, (50, height - 50), (width - 50, height - 50), 5), # 床
-        pymunk.Segment(space.static_body, (50, height - 50), (50, 50), 5),                 # 左壁
-        pymunk.Segment(space.static_body, (width - 50, height - 50), (width - 50, 50), 5)  # 右壁
+        pymunk.Segment(space.static_body, (WALL_INSET, height - WALL_INSET), (width - WALL_INSET, height - WALL_INSET), WALL_THICKNESS), # Floor
+        pymunk.Segment(space.static_body, (WALL_INSET, height - WALL_INSET), (WALL_INSET, WALL_INSET), WALL_THICKNESS),                 # Left wall
+        pymunk.Segment(space.static_body, (width - WALL_INSET, height - WALL_INSET), (width - WALL_INSET, WALL_INSET), WALL_THICKNESS)  # Right wall
     ]
     for wall in walls:
-        wall.elasticity = 0.5  # 跳ね返り係数 (0.0〜1.0)
-        wall.friction = 0.5    # 摩擦
+        wall.elasticity = WALL_ELASTICITY
+        wall.friction = WALL_FRICTION
     space.add(*walls)
 
-# --- ボールを作る関数 ---
+# --- Ball Creation ---
 def create_ball(space, x, y):
-    mass = 1        # 重さ
-    radius = 30     # 半径
-    moment = pymunk.moment_for_circle(mass, 0, radius) # 慣性モーメント
-    body = pymunk.Body(mass, moment)
+    """Creates a dynamic ball."""
+    moment = pymunk.moment_for_circle(BALL_MASS, 0, BALL_RADIUS)
+    body = pymunk.Body(BALL_MASS, moment)
     body.position = x, y
-    shape = pymunk.Circle(body, radius)
-    shape.elasticity = 0.8 # よく弾む
-    shape.friction = 0.5
+    shape = pymunk.Circle(body, BALL_RADIUS)
+    shape.elasticity = BALL_ELASTICITY
+    shape.friction = BALL_FRICTION
     space.add(body, shape)
 
-# 壁を生成
+# Generate walls
 create_walls(space, WIDTH, HEIGHT)
 
-# --- メインループ ---
+# --- Main Game Loop ---
 running = True
 while running:
-    # 1. イベント処理
+    # 1. Event Handling
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
-        # クリックしたらその場所にボールを落とす
         elif event.type == pygame.MOUSEBUTTONDOWN:
-            x, y = event.pos
-            # 壁の外に出ないように制限
-            if 50 < x < WIDTH - 50:
-                create_ball(space, x, 50) # 高さは50の位置から落とす
+            x, _ = event.pos
+            # Restrict ball creation to within the walls
+            if WALL_INSET < x < WIDTH - WALL_INSET:
+                create_ball(space, x, BALL_SPAWN_Y)
 
-    # 2. 物理演算の更新
+    # 2. Physics Update
     space.step(1 / FPS)
 
-    # 3. 描画
-    screen.fill((255, 255, 255)) # 背景を白に
-    space.debug_draw(draw_options) # Pymunkのデバッグ描画機能を使う
+    # 3. Drawing
+    screen.fill(BACKGROUND_COLOR)
+    space.debug_draw(draw_options) # Use Pymunk's debug drawing
     
     pygame.display.flip()
     clock.tick(FPS)
