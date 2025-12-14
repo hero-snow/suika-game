@@ -9,7 +9,7 @@ WIDTH, HEIGHT = 600, 800
 FPS = 60
 
 # Colors
-BACKGROUND_COLOR = (255, 255, 255)
+BACKGROUND_COLOR = (210, 230, 255)
 
 # Physics properties
 GRAVITY = (0.0, 900.0)
