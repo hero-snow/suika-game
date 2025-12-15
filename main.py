@@ -144,6 +144,28 @@ is_animal_over_line = False
 # 最初に落とす動物を、最初の3種類からランダムに選ぶ
 current_animal_spec = random.choice(ANIMAL_SPECS[:3])
 
+def reset_game():
+    """Resets the game to its initial state."""
+    global game_over, game_over_timer, is_animal_over_line, current_animal_spec
+
+    # Remove all animals from the space
+    bodies_to_remove = [body for body in space.bodies if body.body_type == pymunk.Body.DYNAMIC]
+    for body in bodies_to_remove:
+        space.remove(body, *body.shapes)
+
+    # Clear collision handling lists
+    shapes_to_remove.clear()
+    animals_to_add.clear()
+
+    # Reset game state variables
+    game_over = False
+    game_over_timer = 0
+    is_animal_over_line = False
+
+    # Set a new starting animal
+    current_animal_spec = random.choice(ANIMAL_SPECS[:3])
+
+
 while running:
     # 1. Event Handling
     for event in pygame.event.get():
@@ -153,6 +175,9 @@ while running:
         elif event.type == pygame.MOUSEBUTTONDOWN and not game_over:
             x, _ = event.pos
             radius = current_animal_spec['radius']
+        elif event.type == pygame.KEYDOWN and game_over:
+            if event.key == pygame.K_r:
+                reset_game()
             # 壁の外に出ないようにX座標を制限
             x = max(50 + radius, min(x, WIDTH - 50 - radius))
 
@@ -230,6 +255,12 @@ while running:
         text = font.render("Game Over", True, (200, 0, 0))
         text_rect = text.get_rect(center=(WIDTH / 2, HEIGHT / 2))
         screen.blit(text, text_rect)
+
+        # Restart message
+        font_small = pygame.font.Font(None, 50)
+        restart_text = font_small.render("Press R to Restart", True, (0, 0, 0))
+        restart_rect = restart_text.get_rect(center=(WIDTH / 2, HEIGHT / 2 + 60))
+        screen.blit(restart_text, restart_rect)
 
     pygame.display.flip()
     clock.tick(FPS)
