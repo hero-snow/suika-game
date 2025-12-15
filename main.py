@@ -48,6 +48,8 @@ pygame.init()
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
 pygame.display.set_caption("Python Suika Game Base")
 clock = pygame.time.Clock()
+font_large = pygame.font.Font(None, 100)
+font_small = pygame.font.Font(None, 50)
 
 # --- Physics Space Setup ---
 space = pymunk.Space()
@@ -175,9 +177,6 @@ while running:
         elif event.type == pygame.MOUSEBUTTONDOWN and not game_over:
             x, _ = event.pos
             radius = current_animal_spec['radius']
-        elif event.type == pygame.KEYDOWN and game_over:
-            if event.key == pygame.K_r:
-                reset_game()
             # 壁の外に出ないようにX座標を制限
             x = max(50 + radius, min(x, WIDTH - 50 - radius))
 
@@ -185,6 +184,9 @@ while running:
 
             # 次に落とす動物をランダムに選ぶ
             current_animal_spec = random.choice(ANIMAL_SPECS[:3])
+        elif event.type == pygame.KEYDOWN and game_over:
+            if event.key == pygame.K_r:
+                reset_game()
 
     # 2. Physics Update
     space.step(1 / FPS)
@@ -251,13 +253,11 @@ while running:
 
     # ゲームオーバー表示
     if game_over:
-        font = pygame.font.Font(None, 100)
-        text = font.render("Game Over", True, (200, 0, 0))
+        text = font_large.render("Game Over", True, (200, 0, 0))
         text_rect = text.get_rect(center=(WIDTH / 2, HEIGHT / 2))
         screen.blit(text, text_rect)
 
         # Restart message
-        font_small = pygame.font.Font(None, 50)
         restart_text = font_small.render("Press R to Restart", True, (0, 0, 0))
         restart_rect = restart_text.get_rect(center=(WIDTH / 2, HEIGHT / 2 + 60))
         screen.blit(restart_text, restart_rect)
