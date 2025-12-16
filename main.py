@@ -117,6 +117,7 @@ animals_to_add = []
 
 
 def post_solve_collision(arbiter, space, data):
+    global score
     # 衝突した2つのシェイプを取得
     shape_a, shape_b = arbiter.shapes
 
@@ -146,6 +147,11 @@ def post_solve_collision(arbiter, space, data):
                     animals_to_add.append(
                         (collision_pos.x, collision_pos.y, evolved_spec)
                     )
+                    # スコアを加算
+                    for i, spec in enumerate(ANIMAL_SPECS):
+                        if spec["name"] == evolved_spec["name"]:
+                            score += i * 10 + 10  # 進化後の動物に基づいてスコアを加算
+                            break
 
 
 # Pymunkに衝突ハンドラを登録
@@ -170,6 +176,16 @@ running = True
 game_over = False
 game_over_timer = 0
 is_animal_over_line = False
+score = 0
+high_score = 0
+
+# Load high score
+try:
+    with open("highscore.txt", "r") as f:
+        high_score = int(f.read())
+except (FileNotFoundError, ValueError):
+    high_score = 0
+
 
 # 最初に落とす動物を、最初の3種類からランダムに選ぶ
 current_animal_spec = random.choice(ANIMAL_SPECS[:3])
@@ -177,7 +193,7 @@ current_animal_spec = random.choice(ANIMAL_SPECS[:3])
 
 def reset_game():
     """Resets the game to its initial state."""
-    global game_over, game_over_timer, is_animal_over_line, current_animal_spec
+    global game_over, game_over_timer, is_animal_over_line, current_animal_spec, score
 
     # Remove all animals from the space
     bodies_to_remove = [
@@ -194,6 +210,7 @@ def reset_game():
     game_over = False
     game_over_timer = 0
     is_animal_over_line = False
+    score = 0
 
     # Set a new starting animal
     current_animal_spec = random.choice(ANIMAL_SPECS[:3])
@@ -249,6 +266,11 @@ while running:
             game_over_timer += 1 / FPS
             if game_over_timer > GAME_OVER_DELAY:
                 game_over = True
+                # ハイスコアを更新
+                if score > high_score:
+                    high_score = score
+                    with open("highscore.txt", "w") as f:
+                        f.write(str(high_score))
         else:
             game_over_timer = 0
 
@@ -286,15 +308,31 @@ while running:
             screen, current_animal_spec["color"], (indicator_x, 50), radius, 3
         )  # 枠線だけ描画
 
+    # スコア表示
+    score_text = font_small.render(f"Score: {score}", True, (0, 0, 0))
+    screen.blit(score_text, (60, 20))
+
+    # ハイスコア表示
+    high_score_text = font_small.render(f"High Score: {high_score}", True, (0, 0, 0))
+    high_score_rect = high_score_text.get_rect(right=WIDTH - 60, top=20)
+    screen.blit(high_score_text, high_score_rect)
+
     # ゲームオーバー表示
     if game_over:
         text = font_large.render("Game Over", True, (200, 0, 0))
-        text_rect = text.get_rect(center=(WIDTH / 2, HEIGHT / 2))
+        text_rect = text.get_rect(center=(WIDTH / 2, HEIGHT / 2 - 40))
         screen.blit(text, text_rect)
+
+        # Final score
+        final_score_text = font_small.render(f"Score: {score}", True, (0, 0, 0))
+        final_score_rect = final_score_text.get_rect(
+            center=(WIDTH / 2, HEIGHT / 2 + 20)
+        )
+        screen.blit(final_score_text, final_score_rect)
 
         # Restart message
         restart_text = font_small.render("Press R to Restart", True, (0, 0, 0))
-        restart_rect = restart_text.get_rect(center=(WIDTH / 2, HEIGHT / 2 + 60))
+        restart_rect = restart_text.get_rect(center=(WIDTH / 2, HEIGHT / 2 + 70))
         screen.blit(restart_text, restart_rect)
 
     pygame.display.flip()
