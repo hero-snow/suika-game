@@ -26,26 +26,26 @@ ELASTICITY = 0.8
 FRICTION = 0.5
 SPAWN_Y = 50
 
-GAME_OVER_LINE_Y = 100  # ゲームオーバー判定ラインのY座標
-GAME_OVER_DELAY = 2  # ゲームオーバーになるまでの猶予時間（秒）
+GAME_OVER_LINE_Y = 100  # Y coordinate of the game over line
+GAME_OVER_DELAY = 2  # Grace period in seconds before game over
 
-# 動物の仕様を定義
-# 進化の順番: ねずみ -> うさぎ -> ねこ -> いぬ -> きつね -> うま -> きりん -> ライオン -> 象
+# Define animal specifications
+# Evolution order: mouse -> rabbit -> cat -> dog -> fox -> horse -> giraffe -> lion -> elephant
 ANIMAL_SPECS = [
-    {"name": "ねずみ", "radius": 20, "color": (128, 128, 128), "evolves_to": "うさぎ"},
-    {"name": "うさぎ", "radius": 25, "color": (255, 255, 255), "evolves_to": "ねこ"},
-    {"name": "ねこ", "radius": 30, "color": (255, 165, 0), "evolves_to": "いぬ"},
-    {"name": "いぬ", "radius": 35, "color": (139, 69, 19), "evolves_to": "きつね"},
-    {"name": "きつね", "radius": 40, "color": (255, 140, 0), "evolves_to": "うま"},
-    {"name": "うま", "radius": 50, "color": (160, 82, 45), "evolves_to": "きりん"},
-    {"name": "きりん", "radius": 60, "color": (255, 215, 0), "evolves_to": "ライオン"},
-    {"name": "ライオン", "radius": 70, "color": (218, 165, 32), "evolves_to": "ぞう"},
+    {"name": "mouse", "radius": 20, "color": (128, 128, 128), "evolves_to": "rabbit"},
+    {"name": "rabbit", "radius": 25, "color": (255, 255, 255), "evolves_to": "cat"},
+    {"name": "cat", "radius": 30, "color": (255, 165, 0), "evolves_to": "dog"},
+    {"name": "dog", "radius": 35, "color": (139, 69, 19), "evolves_to": "fox"},
+    {"name": "fox", "radius": 40, "color": (255, 140, 0), "evolves_to": "horse"},
+    {"name": "horse", "radius": 50, "color": (160, 82, 45), "evolves_to": "giraffe"},
+    {"name": "giraffe", "radius": 60, "color": (255, 215, 0), "evolves_to": "lion"},
+    {"name": "lion", "radius": 70, "color": (218, 165, 32), "evolves_to": "elephant"},
     {
-        "name": "ぞう",
+        "name": "elephant",
         "radius": 80,
         "color": (192, 192, 192),
         "evolves_to": None,
-    },  # 象は進化しない
+    },  # Elephants do not evolve
 ]
 
 # --- Initialization ---
@@ -93,7 +93,7 @@ def create_walls(space, width, height):
     space.add(*walls)
 
 
-# --- 動物を作る関数 ---
+# --- Function to create an animal ---
 def create_animal(space, x, y, animal_spec):
     radius = animal_spec["radius"]
     moment = pymunk.moment_for_circle(MASS, 0, radius)
@@ -102,68 +102,70 @@ def create_animal(space, x, y, animal_spec):
     shape = pymunk.Circle(body, radius)
     shape.elasticity = ELASTICITY
     shape.friction = FRICTION
-    # カスタムプロパティとして動物の名前を追加
+    # Add animal name as a custom property
     shape.animal_name = animal_spec["name"]
-    shape.collision_type = 1  # 動物用の衝突タイプ
+    shape.collision_type = 1  # Collision type for animals
     space.add(body, shape)
     return shape
 
 
-# --- 衝突ハンドラ ---
-# 衝突した動物を削除リストに追加するためのリスト
+# --- Collision Handler ---
+# List for adding collided animals to the removal list
 shapes_to_remove = []
-# 進化後の動物を生成するためのリスト
+# List for creating evolved animals
 animals_to_add = []
 
 
 def post_solve_collision(arbiter, space, data):
     global score
-    # 衝突した2つのシェイプを取得
+    # Get the two collided shapes
     shape_a, shape_b = arbiter.shapes
 
-    # 両方が動物であることを確認
+    # Check if both are animals
     if hasattr(shape_a, "animal_name") and hasattr(shape_b, "animal_name"):
-        # 同じ種類の動物か確認
+        # Check if they are the same type of animal
         if shape_a.animal_name == shape_b.animal_name:
-            # すでに削除リストに入っている場合は処理しない
+            # If already in the removal list, do not process
             if shape_a in shapes_to_remove or shape_b in shapes_to_remove:
                 return
 
-            # 進化しない最終形態（象）でないことを確認
+            # Check that it is not the final form that does not evolve (elephant)
             spec_a = get_animal_spec(shape_a.animal_name)
             if spec_a and spec_a["evolves_to"]:
-                # 2つの動物を削除リストに追加
+                # Add the two animals to the removal list
                 shapes_to_remove.append(shape_a)
                 shapes_to_remove.append(shape_b)
 
-                # 衝突位置（中間点）を計算
+                # Calculate the collision position (midpoint)
                 pos_a = shape_a.body.position
                 pos_b = shape_b.body.position
                 collision_pos = (pos_a + pos_b) / 2
 
-                # 進化後の動物の仕様を取得して、追加リストに追加
+                # Get the specification of the evolved animal and add it to the addition list
                 evolved_spec = get_animal_spec(spec_a["evolves_to"])
                 if evolved_spec:
                     animals_to_add.append(
                         (collision_pos.x, collision_pos.y, evolved_spec)
                     )
-                    # スコアを加算
+                    # Add score
                     for i, spec in enumerate(ANIMAL_SPECS):
                         if spec["name"] == evolved_spec["name"]:
-                            score += i * 10 + 10  # 進化後の動物に基づいてスコアを加算
+                            score += (
+                                i * 10 + 10
+                            )  # Add score based on the evolved animal
                             break
 
 
-# Pymunkに衝突ハンドラを登録
+# Register the collision handler with Pymunk
 handler = space.on_collision(
     1, 1, post_solve=post_solve_collision
-)  # 衝突タイプ1同士の衝突
+)  # Collision between two objects of collision type 1
 
-# 壁を生成
+# Create walls
 create_walls(space, WIDTH, HEIGHT)
 
-# --- ヘルパー ---
-# 動物の名前から仕様を引くための辞書
+# --- Helpers ---
+# Dictionary for looking up animal specifications by name
 ANIMAL_MAP = {spec["name"]: spec for spec in ANIMAL_SPECS}
 
 
@@ -187,7 +189,7 @@ except (FileNotFoundError, ValueError):
     high_score = 0
 
 
-# 最初に落とす動物を、最初の3種類からランダムに選ぶ
+# Randomly select the first animal to drop from the first 3 types
 current_animal_spec = random.choice(ANIMAL_SPECS[:3])
 
 
@@ -221,16 +223,16 @@ while running:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
-        # クリックしたらその場所に現在の動物を落とす (ゲームオーバーでない場合のみ)
+        # When clicked, drop the current animal at that location (only if not game over)
         elif event.type == pygame.MOUSEBUTTONDOWN and not game_over:
             x, _ = event.pos
             radius = current_animal_spec["radius"]
-            # 壁の外に出ないようにX座標を制限
+            # Restrict the X coordinate so that it does not go outside the wall
             x = max(50 + radius, min(x, WIDTH - 50 - radius))
 
-            create_animal(space, x, 50, current_animal_spec)  # Y=50から落とす
+            create_animal(space, x, 50, current_animal_spec)  # Drop from Y=50
 
-            # 次に落とす動物をランダムに選ぶ
+            # Randomly select the next animal to drop
             current_animal_spec = random.choice(ANIMAL_SPECS[:3])
         elif event.type == pygame.KEYDOWN and game_over:
             if event.key == pygame.K_r:
@@ -239,7 +241,7 @@ while running:
     # 2. Physics Update
     space.step(1 / FPS)
 
-    # 衝突後のオブジェクト削除と追加
+    # Deletion and addition of objects after collision
     for shape in shapes_to_remove:
         if shape.body in space.bodies:
             space.remove(shape.body, shape)
@@ -249,11 +251,11 @@ while running:
         create_animal(space, x, y, spec)
     animals_to_add.clear()
 
-    # ゲームオーバー判定
+    # Game over judgment
     if not game_over:
         is_animal_over_line = False
         for body in space.bodies:
-            # 動物の上端がラインを超えているかチェック
+            # Check if the top of the animal is over the line
             shapes_list = list(body.shapes)
 
             if shapes_list:
@@ -266,7 +268,7 @@ while running:
             game_over_timer += 1 / FPS
             if game_over_timer > GAME_OVER_DELAY:
                 game_over = True
-                # ハイスコアを更新
+                # Update high score
                 if score > high_score:
                     high_score = score
                     with open("highscore.txt", "w") as f:
@@ -274,20 +276,20 @@ while running:
         else:
             game_over_timer = 0
 
-    # 3. 描画
-    screen.fill((BACKGROUND_COLOR))  # 背景色
+    # 3. Drawing
+    screen.fill((BACKGROUND_COLOR))  # Background color
     space.debug_draw(draw_options)  # Use Pymunk's debug drawing
-    # ゲームオーバーラインの描画 (点線)
+    # Drawing the game over line (dotted line)
     for x in range(50, WIDTH - 50, 20):
         pygame.draw.line(
             screen, (255, 0, 0), (x, GAME_OVER_LINE_Y), (x + 10, GAME_OVER_LINE_Y), 2
         )
 
-    # 壁の描画
+    # Drawing the walls
     for wall in space.static_body.shapes:
         pygame.draw.line(screen, (100, 100, 100), wall.a, wall.b, 5)
 
-    # 動物たち（円）の描画
+    # Drawing the animals (circles)
     for body in space.bodies:
         for shape in body.shapes:
             if hasattr(shape, "animal_name"):
@@ -298,26 +300,26 @@ while running:
                         screen, spec["color"], (int(pos.x), int(pos.y)), spec["radius"]
                     )
 
-    # 次に落とす動物をマウスカーソルの位置に表示 (ゲームオーバーでない場合)
+    # Display the next animal to be dropped at the mouse cursor position (if not game over)
     if not game_over:
         mouse_x, _ = pygame.mouse.get_pos()
         radius = current_animal_spec["radius"]
-        # X座標を壁の内側に制限
+        # Restrict the X coordinate to the inside of the wall
         indicator_x = max(50 + radius, min(mouse_x, WIDTH - 50 - radius))
         pygame.draw.circle(
             screen, current_animal_spec["color"], (indicator_x, 50), radius, 3
-        )  # 枠線だけ描画
+        )  # Draw only the border
 
-    # スコア表示
+    # Display score
     score_text = font_small.render(f"Score: {score}", True, (0, 0, 0))
     screen.blit(score_text, (60, 20))
 
-    # ハイスコア表示
+    # Display high score
     high_score_text = font_small.render(f"High Score: {high_score}", True, (0, 0, 0))
     high_score_rect = high_score_text.get_rect(right=WIDTH - 60, top=20)
     screen.blit(high_score_text, high_score_rect)
 
-    # ゲームオーバー表示
+    # Display game over
     if game_over:
         text = font_large.render("Game Over", True, (200, 0, 0))
         text_rect = text.get_rect(center=(WIDTH / 2, HEIGHT / 2 - 40))
