@@ -174,6 +174,7 @@ def get_animal_spec(animal_name):
 # --- Main Game Loop ---
 running = True
 game_over = False
+new_high_score = False
 game_over_timer = 0
 is_animal_over_line = False
 score = 0
@@ -193,7 +194,13 @@ current_animal_spec = random.choice(ANIMAL_SPECS[:3])
 
 def reset_game():
     """Resets the game to its initial state."""
-    global game_over, game_over_timer, is_animal_over_line, current_animal_spec, score
+    global \
+        game_over, \
+        game_over_timer, \
+        is_animal_over_line, \
+        current_animal_spec, \
+        score, \
+        new_high_score
 
     # Remove all animals from the space
     bodies_to_remove = [
@@ -210,6 +217,7 @@ def reset_game():
     game_over = False
     game_over_timer = 0
     is_animal_over_line = False
+    new_high_score = False
     score = 0
 
     # Set a new starting animal
@@ -268,6 +276,7 @@ while running:
                 game_over = True
                 # ハイスコアを更新
                 if score > high_score:
+                    new_high_score = True
                     high_score = score
                     with open("highscore.txt", "w") as f:
                         f.write(str(high_score))
@@ -334,6 +343,15 @@ while running:
         restart_text = font_small.render("Press R to Restart", True, (0, 0, 0))
         restart_rect = restart_text.get_rect(center=(WIDTH / 2, HEIGHT / 2 + 70))
         screen.blit(restart_text, restart_rect)
+
+        if new_high_score:
+            new_high_score_text = font_small.render(
+                "New High Score!", True, (255, 215, 0)
+            )
+            new_high_score_rect = new_high_score_text.get_rect(
+                center=(WIDTH / 2, HEIGHT / 2 + 120)
+            )
+            screen.blit(new_high_score_text, new_high_score_rect)
 
     pygame.display.flip()
     clock.tick(FPS)
